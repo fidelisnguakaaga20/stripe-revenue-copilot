@@ -1,18 +1,28 @@
-// src/app/api/webhooks/stripe/route.ts
+import type { Stripe } from 'stripe';
 import { NextResponse } from 'next/server';
 import { stripe } from '@lib/stripe';
 import { prisma } from '@lib/db';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 async function getOrgIdFromCustomerId(customerId: string): Promise<string | null> {
   if (!customerId) return null;
-  const customer = await stripe.customers.retrieve(customerId);
-  if (customer && typeof customer !== 'string') {
-    return (customer.metadata?.orgId as string) || null;
-  }
-  return null;
+
+  // Stripe v14 returns Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer>
+  const res = await stripe.customers.retrieve(customerId);
+  const obj = res as Stripe.Customer | Stripe.DeletedCustomer;
+
+  // If deleted, there is no metadata
+  if ('deleted' in obj && obj.deleted) return null;
+
+  const md = (obj as Stripe.Customer).metadata;
+  const orgId = (md?.orgId as string | undefined) ?? null;
+  return orgId;
 }
 
 async function upsertSubscriptionFromStripe(sub: any, orgId: string | null) {
+  if (!orgId) return; // require orgId to satisfy schema
   const priceId = sub.items?.data?.[0]?.price?.id ?? '';
   const currentPeriodStart = sub.current_period_start ? new Date(sub.current_period_start * 1000) : null;
   const currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
@@ -24,10 +34,10 @@ async function upsertSubscriptionFromStripe(sub: any, orgId: string | null) {
     update: {
       status,
       priceId,
-      currentPeriodStart,
-      currentPeriodEnd,
+      currentPeriodStart: currentPeriodStart!,
+      currentPeriodEnd: currentPeriodEnd!,
       cancelAtPeriodEnd,
-      organizationId: orgId || undefined,
+      organizationId: orgId
     },
     create: {
       stripeSubscriptionId: sub.id,
@@ -36,20 +46,19 @@ async function upsertSubscriptionFromStripe(sub: any, orgId: string | null) {
       currentPeriodStart: currentPeriodStart!,
       currentPeriodEnd: currentPeriodEnd!,
       cancelAtPeriodEnd,
-      organizationId: orgId || undefined,
+      organizationId: orgId
     },
   });
 
-  if (orgId) {
-    const active = ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(status);
-    await prisma.organization.update({
-      where: { id: orgId },
-      data: { plan: active ? 'PRO' : 'FREE' },
-    });
-  }
+  const active = ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(status);
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: { plan: active ? 'PRO' : 'FREE' },
+  });
 }
 
 async function upsertInvoiceFromStripe(inv: any, orgId: string | null) {
+  if (!orgId) return; // require orgId to satisfy schema
   const hostedInvoiceUrl = inv.hosted_invoice_url || '';
   const status = (inv.status || 'open').toUpperCase();
   const dueDate = inv.due_date ? new Date(inv.due_date * 1000) : null;
@@ -63,7 +72,7 @@ async function upsertInvoiceFromStripe(inv: any, orgId: string | null) {
       hostedInvoiceUrl,
       status,
       dueDate,
-      organizationId: orgId || undefined,
+      organizationId: orgId
     },
     create: {
       stripeInvoiceId: inv.id,
@@ -73,18 +82,19 @@ async function upsertInvoiceFromStripe(inv: any, orgId: string | null) {
       hostedInvoiceUrl,
       status,
       dueDate,
-      organizationId: orgId || undefined,
+      organizationId: orgId
     },
   });
 }
 
 async function logEvent(orgId: string | null, type: string, id: string) {
   try {
+    if (!orgId) return;
     await prisma.auditLog.create({
       data: {
-        organizationId: orgId || undefined,
+        organizationId: orgId,
         action: type,
-        meta: JSON.stringify({ id }),
+        metadata: { id } // Prisma schema uses `metadata Json?`
       },
     });
   } catch {}
@@ -105,16 +115,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Invalid signature: ${err.message}` }, { status: 400 });
   }
 
-  const type = event.type as string;
   try {
-    switch (type) {
+    switch (event.type as string) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
         const orgId = await getOrgIdFromCustomerId(sub.customer as string);
         await upsertSubscriptionFromStripe(sub, orgId);
-        await logEvent(orgId, type, sub.id);
+        await logEvent(orgId, event.type, sub.id);
         break;
       }
       case 'invoice.finalized':
@@ -125,14 +134,13 @@ export async function POST(req: Request) {
         const inv = event.data.object;
         const orgId = await getOrgIdFromCustomerId(inv.customer as string);
         await upsertInvoiceFromStripe(inv, orgId);
-        await logEvent(orgId, type, inv.id);
+        await logEvent(orgId, event.type, inv.id);
         break;
       }
       default:
-        // ignore others
         break;
     }
-    return NextResponse.json({ received: true, type });
+    return NextResponse.json({ received: true, type: event.type });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Webhook error' }, { status: 500 });
   }
