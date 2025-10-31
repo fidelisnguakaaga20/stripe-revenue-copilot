@@ -11,7 +11,7 @@ type ReconStats = {
 function toInvStatus(s: string | null | undefined) {
   return (s?.toUpperCase() ?? 'OPEN') as any;
 }
-function toSubStatus(s: string) {
+function toSubStatus(s: string | null | undefined) {
   return (s ?? 'incomplete').toUpperCase() as any;
 }
 
@@ -47,7 +47,7 @@ async function upsertInvoice(inv: Stripe.Invoice, organizationId: string) {
 async function syncSubscriptionForCustomer(orgId: string, customerId: string) {
   const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 1 });
   const [sub] = subs.data;
-  if (!sub) return false; // ✅ guard for TS
+  if (!sub) return false;
 
   const item0 = sub.items?.data?.[0];
   const priceId = item0?.price?.id ?? '';
@@ -95,16 +95,24 @@ export async function reconcileAll(): Promise<ReconStats> {
 
   for (const org of orgs) {
     const customerId = org.stripeCustomerId!;
-    // paginate invoices
+    // paginate invoices with explicit type
     let startingAfter: string | undefined = undefined;
     for (let i = 0; i < 20; i++) {
-      const list = await stripe.invoices.list({ customer: customerId, limit: 100, starting_after: startingAfter });
-      for (const inv of list.data) {
+      const listResp: Stripe.ApiList<Stripe.Invoice> = await stripe.invoices.list({
+        customer: customerId,
+        limit: 100,
+        starting_after: startingAfter,
+      });
+
+      for (const inv of listResp.data) {
         await upsertInvoice(inv, org.id);
         invoicesUpserted++;
       }
-      if (!list.has_more) break;
-      startingAfter = list.data[list.data.length - 1].id;
+
+      if (!listResp.has_more) break;
+      const last = listResp.data[listResp.data.length - 1];
+      startingAfter = last?.id;
+      if (!startingAfter) break;
     }
 
     const subSynced = await syncSubscriptionForCustomer(org.id, customerId);
