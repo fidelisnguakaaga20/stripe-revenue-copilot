@@ -5,5 +5,5 @@ if (!key) {
   throw new Error('STRIPE_SECRET_KEY is not set');
 }
 
-// Use a fixed, supported API version
-export const stripe = new Stripe(key, { apiVersion: '2024-06-20' });
+// Use the version supported by stripe@14.x
+export const stripe = new Stripe(key, { apiVersion: '2023-10-16' });
