@@ -1,4 +1,4 @@
-// src/lib/stripeSync.ts
+import type { Stripe } from 'stripe';
 import { prisma } from '@lib/db';
 import { stripe } from '@lib/stripe';
 
@@ -9,10 +9,10 @@ type ReconStats = {
 };
 
 function toInvStatus(s: string | null | undefined) {
-  return (s?.toUpperCase() ?? 'OPEN') as any; // matches InvoiceStatus enum
+  return (s?.toUpperCase() ?? 'OPEN') as any;
 }
 function toSubStatus(s: string) {
-  return s.toUpperCase() as any; // matches SubscriptionStatus enum
+  return s.toUpperCase() as any;
 }
 
 async function upsertInvoice(inv: Stripe.Invoice, organizationId: string) {
@@ -27,6 +27,7 @@ async function upsertInvoice(inv: Stripe.Invoice, organizationId: string) {
       periodStart: inv.period_start ? new Date(inv.period_start * 1000) : null,
       periodEnd: inv.period_end ? new Date(inv.period_end * 1000) : null,
       hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
+      organizationId
     },
     create: {
       stripeInvoiceId: inv.id,
@@ -38,7 +39,7 @@ async function upsertInvoice(inv: Stripe.Invoice, organizationId: string) {
       periodStart: inv.period_start ? new Date(inv.period_start * 1000) : null,
       periodEnd: inv.period_end ? new Date(inv.period_end * 1000) : null,
       hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
-      organizationId,
+      organizationId
     },
   });
 }
@@ -60,7 +61,7 @@ async function syncSubscriptionForCustomer(orgId: string, customerId: string) {
       currentPeriodStart,
       currentPeriodEnd,
       cancelAtPeriodEnd: sub.cancel_at_period_end || false,
-      organizationId: orgId,
+      organizationId: orgId
     },
     create: {
       stripeSubscriptionId: sub.id,
@@ -69,7 +70,7 @@ async function syncSubscriptionForCustomer(orgId: string, customerId: string) {
       currentPeriodStart,
       currentPeriodEnd,
       cancelAtPeriodEnd: sub.cancel_at_period_end || false,
-      organizationId: orgId,
+      organizationId: orgId
     },
   });
 
@@ -93,7 +94,6 @@ export async function reconcileAll(): Promise<ReconStats> {
 
   for (const org of orgs) {
     const customerId = org.stripeCustomerId!;
-    // Paginate invoices for this customer
     let startingAfter: string | undefined = undefined;
     for (let pages = 0; pages < 20; pages++) {
       const list = await stripe.invoices.list({

@@ -11,4 +11,3 @@ prisma/dev.sqlite*
 .env.*
 !.env.example
 .DS_Store
-*.zip
