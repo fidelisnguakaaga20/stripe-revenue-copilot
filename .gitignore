@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.log
+.prisma/
+prisma/dev.db*
+prisma/dev.sqlite*
+.env
+.env.*
+!.env.example
+.DS_Store
+*.zip

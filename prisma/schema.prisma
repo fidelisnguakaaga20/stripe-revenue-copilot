@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ACCOUNTANT
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  UNCOLLECTIBLE
+  VOID
+  CANCELED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  auditLogs   AuditLog[] @relation("AuditActor")
+}
+
+model Organization {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String?  @unique
+  plan             Plan     @default(FREE)
+  stripeCustomerId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  memberships   Membership[]
+  subscriptions Subscription[]
+  invoices      Invoice[]
+  auditLogs     AuditLog[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  role           Role
+  userId         String
+  organizationId String
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Subscription {
+  id                   String              @id @default(cuid())
+  organizationId       String
+  stripeSubscriptionId String              @unique
+  status               SubscriptionStatus
+  priceId              String
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean             @default(false)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([stripeSubscriptionId])
+}
+
+model Invoice {
+  id               String        @id @default(cuid())
+  organizationId   String
+  stripeInvoiceId  String        @unique
+  currency         String
+  amountDue        Int           // smallest unit (e.g., cents)
+  amountPaid       Int           @default(0)
+  status           InvoiceStatus
+  dueDate          DateTime?
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  hostedInvoiceUrl String?       // <— add this (optional link to Stripe-hosted page)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([status, dueDate])
+  @@index([stripeInvoiceId])
+}
+
+model AuditLog {
+  id             String    @id @default(cuid())
+  organizationId String
+  actorUserId    String?
+  action         String
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  actor        User?        @relation("AuditActor", fields: [actorUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([actorUserId])
+}
+
+
