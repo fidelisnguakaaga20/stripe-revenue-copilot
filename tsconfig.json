@@ -2,36 +2,35 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": [
-      "ES2023",
-      "DOM",
-      "DOM.Iterable"
+      "ES2022",
+      "DOM"
     ],
-    "allowJs": false,
-    "skipLibCheck": true,
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "allowJs": false,
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "@lib/*": [
+        "src/lib/*"
+      ]
+    },
+    "incremental": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
     "plugins": [
       {
         "name": "next"
       }
-    ],
-    "paths": {
-      "@lib/*": [
-        "./src/lib/*"
-      ],
-      "@types/*": [
-        "./src/types/*"
-      ]
-    },
-    "noEmit": true,
-    "esModuleInterop": true
+    ]
   },
   "include": [
     "next-env.d.ts",
@@ -44,3 +43,53 @@
     "node_modules"
   ]
 }
+// {
+//   "compilerOptions": {
+//     "target": "ES2022",
+//     "lib": [
+//       "ES2023",
+//       "DOM",
+//       "DOM.Iterable"
+//     ],
+//     "allowJs": false,
+//     "skipLibCheck": true,
+//     "strict": true,
+//     "noUncheckedIndexedAccess": true,
+//     "forceConsistentCasingInFileNames": true,
+//     "module": "ESNext",
+//     "moduleResolution": "Bundler",
+//     "resolveJsonModule": true,
+//     "isolatedModules": true,
+//     "jsx": "react-jsx",
+//     "incremental": true,
+//     "plugins": [
+//       {
+//         "name": "next"
+//       }
+//     ],
+//     "baseUrl": ".", /// added
+//     "paths": {
+//       "@lib/*": [
+//         "./src/lib/*"
+//       ],
+//       "@types/*": [
+//         "./src/types/*"
+//       ],
+//       "@templates/*": [
+//         "./src/templates/*"
+//       ] /// added
+//     },
+//     "noEmit": true,
+//     "esModuleInterop": true
+//   },
+//   "include": [
+//     "next-env.d.ts",
+//     "**/*.ts",
+//     "**/*.tsx",
+//     ".next/types/**/*.ts",
+//     ".next/dev/types/**/*.ts"
+//   ],
+//   "exclude": [
+//     "node_modules"
+//   ]
+// }

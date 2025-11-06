@@ -1,26 +1,33 @@
-import { getSessionUser } from '@lib/auth';
-import { prisma } from '@lib/db';
+// src/app/pricing/page.tsx
+import { getSessionUser } from "@lib/auth"
+import GoogleSignInButton from "../../components/GoogleSignInButton"
 
 export default async function PricingPage() {
-  const user = await getSessionUser();
-  let orgId: string | null = null;
-  if (user) {
-    const m = user.memberships[0];
-    orgId = m?.organizationId ?? null;
-  }
+  const user = await getSessionUser()
+  const org = user?.memberships?.[0]?.organization
+  const orgId = org?.id ?? null
 
   return (
     <main className="card">
       <h1 style={{ marginTop: 0 }}>Pricing</h1>
+
+      {org && (
+        <p style={{ marginTop: -6, marginBottom: 8 }}>
+          Current plan: <b>{org.plan}</b>
+        </p>
+      )}
+
       <div>
         <h3>FREE</h3>
         <ul>
           <li>Core dashboard</li>
           <li>Manual sync</li>
-          <li>Basic dunning (later)</li>
+          <li>Basic dunning (limited)</li>
         </ul>
       </div>
+
       <hr />
+
       <div>
         <h3>PRO</h3>
         <ul>
@@ -34,9 +41,64 @@ export default async function PricingPage() {
             <button type="submit">Upgrade to PRO</button>
           </form>
         ) : (
-          <p><i>Login first to upgrade.</i></p>
+          <div>
+            <p><i>Login first to upgrade.</i></p>
+            <GoogleSignInButton />
+          </div>
         )}
       </div>
     </main>
-  );
+  )
 }
+
+
+
+
+// import { getSessionUser } from '@lib/auth';
+
+// export default async function PricingPage() {
+//   const user = await getSessionUser();
+//   const org = user?.memberships?.[0]?.organization;
+//   const orgId = org?.id ?? null;
+
+//   return (
+//     <main className="card">
+//       <h1 style={{ marginTop: 0 }}>Pricing</h1>
+
+//       {org && (
+//         <p style={{ marginTop: -6, marginBottom: 8 }}>
+//           Current plan: <b>{org.plan}</b>
+//         </p>
+//       )}
+
+//       <div>
+//         <h3>FREE</h3>
+//         <ul>
+//           <li>Core dashboard</li>
+//           <li>Manual sync</li>
+//           <li>Basic dunning (limited)</li>
+//         </ul>
+//       </div>
+
+//       <hr />
+
+//       <div>
+//         <h3>PRO</h3>
+//         <ul>
+//           <li>Unlimited invoices</li>
+//           <li>Automated reconciliation</li>
+//           <li>Automated dunning + logs</li>
+//         </ul>
+
+//         {orgId ? (
+//           <form action={`/api/billing/checkout?orgId=${orgId}`} method="POST">
+//             <button type="submit">Upgrade to PRO</button>
+//           </form>
+//         ) : (
+//           <p><i>Login first to upgrade.</i></p>
+//         )}
+//       </div>
+//     </main>
+//   );
+// }
+

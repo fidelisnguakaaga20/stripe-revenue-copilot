@@ -1,4 +1,3 @@
-// src/app/(dashboard)/layout.tsx
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@lib/auth";
 import "../globals.css";
@@ -13,6 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="container">
           <div className="card" style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <a href="/" aria-label="Back to Home">🏠 Home</a> {/* ADDED */}
               <div><b>Signed in:</b> {user.email}</div>
               <a href="/api/dev-logout">Logout</a>
               <span style={{ marginLeft: "auto", display: "flex", gap: 12 }}>
@@ -28,3 +28,5 @@ export default async function DashboardLayout({ children }: { children: React.Re
     </html>
   );
 }
+
+

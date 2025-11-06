@@ -5,3 +5,12 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,sys
 .container{max-width:880px;margin:0 auto;padding:2rem}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem 1.5rem}
 a{color:#7cc3ff;text-decoration:none} a:hover{text-decoration:underline}
+
+/* Persistent top navigation */
+.topnav{
+  display:flex; gap:.75rem; align-items:center;
+  padding:.5rem .75rem; border:1px solid var(--border);
+  border-radius:10px; background:#0f1520; margin-bottom:1rem;
+}
+.topnav .brand{font-weight:700}
+.topnav .spacer{margin-left:auto}
