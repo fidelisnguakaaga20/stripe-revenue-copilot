@@ -1,7 +1,7 @@
 import { prisma } from "@lib/db";
 import { sendMail } from "@lib/mailer";
-import { overdueTemplate } from "@templates/dunning/overdue";
-import { upcomingTemplate } from "@templates/dunning/upcoming";
+import { overdueTemplate } from "../templates/dunning/overdue";
+import { upcomingTemplate } from "../templates/dunning/upcoming";
 
 function fmtMoney(cents: number, currency: string) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format((cents ?? 0) / 100);
